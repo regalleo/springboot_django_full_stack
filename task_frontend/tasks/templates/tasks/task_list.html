@@ -1,0 +1,980 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Task Manager Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a0f;
+            min-height: 100vh;
+            color: #E0E0E0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px 0;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated Network Background */
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Staircase visualization */
+        .staircase-container {
+            position: fixed;
+            right: 50px;
+            bottom: 50px;
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: flex-end;
+            gap: 5px;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .stair {
+            background: linear-gradient(135deg, #8B7355, #A0826D);
+            border: 2px solid #654321;
+            border-radius: 5px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+            transition: all 0.5s ease;
+        }
+
+        .stair:nth-child(1) { width: 100px; height: 40px; }
+        .stair:nth-child(2) { width: 120px; height: 40px; }
+        .stair:nth-child(3) { width: 140px; height: 40px; }
+        .stair:nth-child(4) { width: 160px; height: 40px; }
+        .stair:nth-child(5) { width: 180px; height: 40px; }
+        .stair:nth-child(6) { width: 200px; height: 40px; }
+        .stair:nth-child(7) { width: 220px; height: 40px; }
+
+        .success-platform {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            border: 3px solid #FF8C00;
+            border-radius: 10px;
+            width: 240px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #8B4513;
+            font-size: 1.5rem;
+            box-shadow: 0 8px 20px rgba(255, 215, 0, 0.6);
+            animation: glow 2s ease-in-out infinite;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 8px 20px rgba(255, 215, 0, 0.6); }
+            50% { box-shadow: 0 8px 35px rgba(255, 215, 0, 1); }
+        }
+
+        .character {
+            position: fixed;
+            width: 50px;
+            height: 50px;
+            font-size: 45px;
+            pointer-events: all;
+            cursor: pointer;
+            transition: all 0.8s ease;
+            z-index: 100;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
+        }
+
+        .character.sleeping::after {
+            content: "💤";
+            position: absolute;
+            top: -25px;
+            right: -15px;
+            font-size: 24px;
+            animation: sleep 2s ease-in-out infinite;
+        }
+
+        @keyframes sleep {
+            0%, 100% { opacity: 1; transform: translateY(0); }
+            50% { opacity: 0.5; transform: translateY(-10px); }
+        }
+
+        .character.celebrating {
+            animation: celebrate 1s ease-in-out;
+        }
+
+        @keyframes celebrate {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            25% { transform: scale(1.3) rotate(-15deg); }
+            75% { transform: scale(1.3) rotate(15deg); }
+        }
+
+        /* Speech bubble */
+        .speech-bubble {
+            position: absolute;
+            background: white;
+            color: #333;
+            padding: 15px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+            max-width: 250px;
+            pointer-events: none;
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .speech-bubble.show {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 30px;
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 10px solid white;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        .header-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #BB86FC;
+            font-weight: 700;
+            text-shadow: 0 0 20px rgba(187, 134, 252, 0.7);
+            margin-bottom: 15px;
+            font-size: 2.5rem;
+        }
+
+        /* Developer Credit */
+        .developer-credit {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 15px;
+            padding: 20px;
+            background: rgba(30, 30, 30, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            border: 1px solid rgba(187, 134, 252, 0.3);
+            flex-wrap: wrap;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .dev-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar {
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            border: 3px solid #BB86FC;
+            box-shadow: 0 0 20px rgba(187, 134, 252, 0.6);
+            animation: avatarPulse 2s ease-in-out infinite;
+            object-fit: cover;
+        }
+
+        @keyframes avatarPulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(187, 134, 252, 0.6); }
+            50% { box-shadow: 0 0 30px rgba(187, 134, 252, 1); }
+        }
+
+        .dev-name {
+            color: #BB86FC;
+            font-weight: 600;
+            font-size: 1.1rem;
+            text-shadow: 0 0 10px rgba(187, 134, 252, 0.5);
+        }
+
+        .social-links {
+            display: flex;
+            gap: 15px;
+        }
+
+        .social-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            background: rgba(187, 134, 252, 0.15);
+            border: 1px solid rgba(187, 134, 252, 0.4);
+            border-radius: 10px;
+            color: #E0E0E0;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .social-link:hover {
+            background: rgba(187, 134, 252, 0.3);
+            border-color: #BB86FC;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(187, 134, 252, 0.4);
+            color: #BB86FC;
+        }
+
+        .social-link i {
+            font-size: 1.3rem;
+        }
+
+        /* Form styling */
+        .form-section {
+            background: rgba(30, 30, 30, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 18px;
+            padding: 35px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(187, 134, 252, 0.3);
+            margin-bottom: 40px;
+        }
+
+        .form-control, .form-select {
+            background-color: #1E1E1E !important;
+            border: 2px solid #BB86FC !important;
+            color: #E0E0E0 !important;
+            padding: 14px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #03DAC6 !important;
+            box-shadow: 0 0 0 0.3rem rgba(3, 218, 198, 0.3) !important;
+            background-color: #2A2A2A !important;
+        }
+
+        .form-control::placeholder {
+            color: #888;
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background: linear-gradient(135deg, #BB86FC, #9C6DD1) !important;
+            border: none !important;
+            padding: 14px;
+            font-weight: 600;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(187, 134, 252, 0.5);
+            font-size: 1.05rem;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(187, 134, 252, 0.7);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #03DAC6, #018786) !important;
+            border: none !important;
+            transition: all 0.3s ease;
+        }
+
+        .btn-success:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(3, 218, 198, 0.5);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #CF6679, #B00020) !important;
+            border: none !important;
+            transition: all 0.3s ease;
+        }
+
+        .btn-danger:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(207, 102, 121, 0.5);
+        }
+
+        /* Task cards */
+        .task-card {
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: rgba(30, 30, 30, 0.95) !important;
+            backdrop-filter: blur(10px);
+            border-radius: 18px;
+            overflow: hidden;
+            border: 1px solid rgba(187, 134, 252, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            transition: all 0.4s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-12px);
+            box-shadow: 0 15px 45px rgba(187, 134, 252, 0.4);
+            border-color: rgba(187, 134, 252, 0.6);
+        }
+
+        .card-img-top {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .card:hover .card-img-top {
+            transform: scale(1.1);
+        }
+
+        .card-body {
+            padding: 22px;
+            background: rgba(30, 30, 30, 0.98);
+        }
+
+        .card-title {
+            color: #BB86FC;
+            font-weight: 700;
+            font-size: 1.35rem;
+            margin-bottom: 12px;
+            text-shadow: 0 0 10px rgba(187, 134, 252, 0.4);
+        }
+
+        .card-text {
+            color: #B0B0B0;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .status-text {
+            color: #03DAC6;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            text-shadow: 0 0 10px rgba(3, 218, 198, 0.6);
+        }
+
+        .text-muted {
+            color: #888 !important;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate__fadeIn {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        ::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1E1E1E;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #BB86FC, #9C6DD1);
+            border-radius: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #9C6DD1, #BB86FC);
+        }
+    </style>
+</head>
+<body>
+    <!-- Suggestion Chatbot -->
+<div id="chatbot-container">
+    <div id="chatbot-header">💬 Suggestion Box</div>
+    <div id="chatbot-messages"></div>
+    <form id="chatbot-form">
+        <input type="text" id="chatbot-input" placeholder="Type your suggestion..." required>
+        <button type="submit">Send</button>
+    </form>
+</div>
+<div id="chatbot-toggle">💬</div>
+
+<style>
+    #chatbot-toggle {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #BB86FC, #9C6DD1);
+        color: #fff;
+        font-size: 24px;
+        padding: 15px;
+        border-radius: 50%;
+        cursor: pointer;
+        z-index: 10000;
+        box-shadow: 0 4px 20px rgba(187, 134, 252, 0.5);
+    }
+
+    #chatbot-container {
+        position: fixed;
+        bottom: 80px;
+        right: 20px;
+        width: 320px;
+        max-height: 400px;
+        background: #1E1E1E;
+        border-radius: 15px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.7);
+        display: none;
+        flex-direction: column;
+        overflow: hidden;
+        z-index: 10000;
+    }
+
+    #chatbot-header {
+        background: linear-gradient(135deg, #BB86FC, #9C6DD1);
+        color: #fff;
+        font-weight: bold;
+        text-align: center;
+        padding: 10px;
+    }
+
+    #chatbot-messages {
+        flex: 1;
+        padding: 10px;
+        overflow-y: auto;
+        font-size: 14px;
+        color: #E0E0E0;
+    }
+
+    .chatbot-message {
+        margin-bottom: 10px;
+        padding: 8px 12px;
+        border-radius: 10px;
+        max-width: 80%;
+        word-wrap: break-word;
+    }
+
+    .chatbot-message.user {
+        background: #03DAC6;
+        color: #000;
+        align-self: flex-end;
+    }
+
+    .chatbot-message.bot {
+        background: #BB86FC;
+        color: #fff;
+        align-self: flex-start;
+    }
+
+    #chatbot-form {
+        display: flex;
+        border-top: 1px solid #333;
+    }
+
+    #chatbot-input {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        outline: none;
+        background: #2A2A2A;
+        color: #fff;
+        font-size: 14px;
+    }
+
+    #chatbot-form button {
+        background: #BB86FC;
+        color: #fff;
+        border: none;
+        padding: 0 20px;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+    #chatbot-form button:hover {
+        background: #9C6DD1;
+    }
+</style>
+
+<script>
+    const chatbotToggle = document.getElementById('chatbot-toggle');
+    const chatbotContainer = document.getElementById('chatbot-container');
+    const chatbotForm = document.getElementById('chatbot-form');
+    const chatbotInput = document.getElementById('chatbot-input');
+    const chatbotMessages = document.getElementById('chatbot-messages');
+    
+    // Toggle chatbot visibility
+    chatbotToggle.addEventListener('click', () => {
+        chatbotContainer.style.display = chatbotContainer.style.display === 'flex' ? 'none' : 'flex';
+    });
+    
+    // Append message to chat window
+    function addMessage(text, sender='bot') {
+        const msg = document.createElement('div');
+        msg.className = `chatbot-message ${sender}`;
+        msg.textContent = text;
+        chatbotMessages.appendChild(msg);
+        chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+    }
+    
+    // Send message to Django backend
+    chatbotForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const userMessage = chatbotInput.value.trim();
+        if (!userMessage) return;
+    
+        // Show user's message
+        addMessage(userMessage, 'user');
+        chatbotInput.value = '';
+    
+        try {
+            // Call your Django suggestion_api endpoint
+            const res = await fetch('/suggestion_api/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({message: userMessage})
+            });
+    
+            const data = await res.json();
+            addMessage(data.reply || "No response from server.", 'bot');
+        } catch (err) {
+            console.error(err);
+            addMessage("Error contacting server.", 'bot');
+        }
+    });
+    </script>
+    
+<!-- Animated Network Background -->
+<canvas id="networkCanvas"></canvas>
+
+<!-- Speech bubble -->
+<div class="speech-bubble" id="speechBubble">Complete the task, and make me reach to my home "SUCCESS"! 🏆</div>
+
+<!-- Staircase container -->
+<div class="staircase-container" id="staircaseContainer">
+    <div class="success-platform">🏆 SUCCESS</div>
+</div>
+
+<div class="container py-4">
+    <div class="header-section animate__animated animate__fadeInDown">
+        <h1>⚡ Task Manager Dashboard</h1>
+        <div class="developer-credit">
+            <div class="dev-info">
+                <img src="{% static 'images/avatar.png' %}" 
+                     alt="Avatar" 
+                     class="avatar"
+                     onerror="this.src='https://ui-avatars.com/api/?name=Raj+Shekhar+Singh&background=BB86FC&color=fff&size=200&bold=true&format=svg'">
+                <span class="dev-name">Developed by Raj Shekhar Singh</span>
+            </div>
+            <div class="social-links">
+                <a href="https://linkedin.com/in/raj-shekhar-singh-aa16ab245" target="_blank" class="social-link">
+                    <i class="fab fa-linkedin"></i>
+                    <span>LinkedIn</span>
+                </a>
+                <a href="https://github.com/regalleo" target="_blank" class="social-link">
+                    <i class="fab fa-github"></i>
+                    <span>GitHub</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-8 offset-md-2">
+            <div class="form-section animate__animated animate__fadeIn">
+                <form id="taskForm">
+                    <input type="text" id="title" class="form-control mb-3" placeholder="Task Title" required>
+                    <input type="text" id="description" class="form-control mb-3" placeholder="Task Description">
+                    <select id="priority" class="form-select mb-3">
+                        <option value="low">Low Priority</option>
+                        <option value="medium" selected>Medium Priority</option>
+                        <option value="high">High Priority</option>
+                    </select>
+                    <button type="submit" class="btn btn-primary w-100">Add Task</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="row" id="taskContainer"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script>
+// Animated Network Background
+const canvas = document.getElementById('networkCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let mouseX = -1000;
+let mouseY = -1000;
+
+class Node {
+    constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.vx = (Math.random() - 0.5) * 0.5;
+        this.vy = (Math.random() - 0.5) * 0.5;
+        this.radius = 3;
+    }
+
+    update() {
+        // Move away from cursor
+        const dx = this.x - mouseX;
+        const dy = this.y - mouseY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        if (dist < 150) {
+            const force = (150 - dist) / 150;
+            this.vx += (dx / dist) * force * 0.5;
+            this.vy += (dy / dist) * force * 0.5;
+        }
+
+        // Apply velocity
+        this.x += this.vx;
+        this.y += this.vy;
+
+        // Damping
+        this.vx *= 0.95;
+        this.vy *= 0.95;
+
+        // Bounce off edges
+        if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+        if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+
+        // Keep in bounds
+        this.x = Math.max(0, Math.min(canvas.width, this.x));
+        this.y = Math.max(0, Math.min(canvas.height, this.y));
+    }
+
+    draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(187, 134, 252, 0.8)';
+        ctx.fill();
+    }
+}
+
+const nodes = [];
+const nodeCount = 80;
+
+for (let i = 0; i < nodeCount; i++) {
+    nodes.push(new Node());
+}
+
+function drawConnections() {
+    for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+            const dx = nodes[i].x - nodes[j].x;
+            const dy = nodes[i].y - nodes[j].y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < 120) {
+                ctx.beginPath();
+                ctx.moveTo(nodes[i].x, nodes[i].y);
+                ctx.lineTo(nodes[j].x, nodes[j].y);
+                const opacity = (1 - dist / 120) * 0.3;
+                ctx.strokeStyle = `rgba(187, 134, 252, ${opacity})`;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+        }
+    }
+}
+
+function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    drawConnections();
+    
+    nodes.forEach(node => {
+        node.update();
+        node.draw();
+    });
+
+    requestAnimationFrame(animate);
+}
+
+animate();
+
+document.addEventListener('mousemove', (e) => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+});
+
+window.addEventListener('resize', () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+});
+
+// Staircase and character management
+const staircaseContainer = document.getElementById('staircaseContainer');
+const speechBubble = document.getElementById('speechBubble');
+let taskCharacters = {};
+let currentStairIndex = 0;
+
+function createStair() {
+    const stair = document.createElement('div');
+    stair.className = 'stair';
+    stair.dataset.index = currentStairIndex;
+    staircaseContainer.insertBefore(stair, staircaseContainer.children[0]);
+    return stair;
+}
+
+function createCharacter(taskId, stair) {
+    const character = document.createElement('div');
+    character.className = 'character sleeping';
+    character.innerHTML = '🧍';
+    character.dataset.taskId = taskId;
+
+    const stairRect = stair.getBoundingClientRect();
+    character.style.left = (stairRect.left + stairRect.width / 2 - 25) + 'px';
+    character.style.top = (stairRect.top - 55) + 'px';
+
+    document.body.appendChild(character);
+
+    // Speech bubble on hover
+    character.addEventListener('mouseenter', () => {
+        const rect = character.getBoundingClientRect();
+        speechBubble.style.left = (rect.left - 80) + 'px';
+        speechBubble.style.top = (rect.top - 90) + 'px';
+        speechBubble.classList.add('show');
+    });
+
+    character.addEventListener('mouseleave', () => {
+        speechBubble.classList.remove('show');
+    });
+
+    return character;
+}
+
+
+function moveCharacterToSuccess(character) {
+    character.classList.remove('sleeping');
+    character.classList.add('celebrating');
+    character.innerHTML = '🎉';
+    
+    const successPlatform = document.querySelector('.success-platform');
+    const rect = successPlatform.getBoundingClientRect();
+    
+    character.style.left = (rect.left + rect.width / 2 - 25) + 'px';
+    character.style.top = (rect.top - 55) + 'px';
+    
+    setTimeout(() => {
+        character.remove();
+    }, 2000);
+}
+
+const PIXABAY_KEY = "52753938-3cdb2a1cbf18829db4602a578";
+const apiBase = "http://localhost:8080/api/tasks";
+const taskContainer = document.getElementById('taskContainer');
+const taskForm = document.getElementById('taskForm');
+
+async function getImageForTask(query) {
+    try {
+        let cleanQuery = query.trim().toLowerCase();
+        
+        const techKeywords = {
+            'python': 'python programming code',
+            'java': 'java programming code',
+            'javascript': 'javascript code programming',
+            'react': 'react programming web development',
+            'angular': 'angular programming framework',
+            'vue': 'vue programming framework',
+            'node': 'nodejs programming backend',
+            'ruby': 'ruby programming code',
+            'go': 'golang programming code',
+            'rust': 'rust programming language',
+            'swift': 'swift programming ios',
+            'kotlin': 'kotlin programming android',
+            'c++': 'cpp programming code',
+            'c#': 'csharp programming dotnet',
+            'php': 'php programming web',
+            'sql': 'database sql programming',
+            'html': 'html web development code',
+            'css': 'css web design styling',
+            'typescript': 'typescript programming code'
+        };
+        
+        for (const [key, value] of Object.entries(techKeywords)) {
+            if (cleanQuery.includes(key)) {
+                cleanQuery = value;
+                break;
+            }
+        }
+        
+        const res = await axios.get("https://pixabay.com/api/", {
+            params: { 
+                key: PIXABAY_KEY, 
+                q: cleanQuery, 
+                image_type: "photo", 
+                per_page: 3,
+                safesearch: true
+            }
+        });
+        
+        if (res.data.hits && res.data.hits.length > 0) {
+            const randomIndex = Math.floor(Math.random() * res.data.hits.length);
+            return res.data.hits[randomIndex].webformatURL;
+        }
+        
+        const fallbackRes = await axios.get("https://pixabay.com/api/", {
+            params: { 
+                key: PIXABAY_KEY, 
+                q: 'programming computer code', 
+                image_type: "photo", 
+                per_page: 3 
+            }
+        });
+        
+        if (fallbackRes.data.hits && fallbackRes.data.hits.length > 0) {
+            const randomIndex = Math.floor(Math.random() * fallbackRes.data.hits.length);
+            return fallbackRes.data.hits[randomIndex].webformatURL;
+        }
+        
+        return "https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=800";
+    } catch (err) {
+        console.error("Pixabay error:", err);
+        return "https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=800";
+    }
+}
+
+async function addTaskCard(task) {
+    const col = document.createElement('div');
+    col.className = `col-md-4 mb-3 animate__animated animate__fadeIn task-card`;
+    col.dataset.id = task.id;
+
+    const taskImage = await getImageForTask(task.title);
+
+    col.innerHTML = `
+        <div class="card shadow-sm">
+            <img src="${taskImage}" class="card-img-top" alt="Task Image">
+            <div class="card-body">
+                <h5 class="card-title">${task.title}</h5>
+                <p class="card-text">${task.description || 'No description provided'}</p>
+                <p class="text-muted">Status: <span class="status-text">${task.status}</span></p>
+                <div class="d-flex justify-content-between">
+                    <button class="btn btn-success btn-sm btn-update">Toggle Status</button>
+                    <button class="btn btn-danger btn-sm btn-delete">Delete</button>
+                </div>
+            </div>
+        </div>`;
+
+    taskContainer.appendChild(col);
+    
+    // Create stair and character for new task
+    if (task.status === 'todo') {
+        const stair = createStair();
+        const character = createCharacter(task.id, stair);
+        taskCharacters[task.id] = { character, stair, stairIndex: currentStairIndex };
+        currentStairIndex++;
+    }
+
+    // DELETE task
+    col.querySelector('.btn-delete').addEventListener('click', async () => {
+        try {
+            await axios.delete(`${apiBase}/${task.id}`);
+            col.classList.add('animate__fadeOut');
+            
+            if (taskCharacters[task.id]) {
+                taskCharacters[task.id].character.remove();
+                taskCharacters[task.id].stair.remove();
+                delete taskCharacters[task.id];
+            }
+            
+            setTimeout(() => col.remove(), 500);
+        } catch (err) {
+            console.error(err);
+        }
+    });
+
+    // TOGGLE status
+    col.querySelector('.btn-update').addEventListener('click', async () => {
+        const newStatus = task.status === 'todo' ? 'done' : 'todo';
+        await axios.put(`${apiBase}/${task.id}`, {...task, status: newStatus});
+        task.status = newStatus;
+        col.querySelector('.status-text').textContent = newStatus;
+        col.classList.add('animate__flash');
+        
+        if (newStatus === 'done' && taskCharacters[task.id]) {
+            moveCharacterToSuccess(taskCharacters[task.id].character);
+            setTimeout(() => {
+                if (taskCharacters[task.id]) {
+                    taskCharacters[task.id].stair.remove();
+                    delete taskCharacters[task.id];
+                }
+            }, 2000);
+        }
+        
+        setTimeout(() => col.classList.remove('animate__flash'), 1000);
+    });
+}
+
+async function loadTasks() {
+    try {
+        const res = await axios.get(apiBase);
+        taskContainer.innerHTML = '';
+        for (const task of res.data) {
+            await addTaskCard(task);
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+taskForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const taskData = {
+        title: document.getElementById('title').value,
+        description: document.getElementById('description').value,
+        priority: document.getElementById('priority').value,
+        status: 'todo'
+    };
+    try {
+        const res = await axios.post(apiBase, taskData, {headers: {'Content-Type': 'application/json'}});
+        await addTaskCard(res.data);
+        taskForm.reset();
+    } catch (err) {
+        console.error(err);
+    }
+});
+
+loadTasks();
+</script>
+</body>
+</html>

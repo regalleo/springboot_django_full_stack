@@ -86,10 +86,10 @@
 
 
 ### 🎯 Task Management
-![Tasks](https://via.placeholder.com/800x400/0a0a0f/03DAC6?text=Interactive+Task+Cards)
+![Tasks](https://github.com/regalleo/springboot_django_full_stack/blob/main/screenshots/tasks.png)
 
 ### 💬 AI Chatbot
-![Chatbot](https://via.placeholder.com/800x400/0a0a0f/BB86FC?text=AI+Suggestion+Chatbot)
+![Chatbot](https://github.com/regalleo/springboot_django_full_stack/blob/main/screenshots/chatbot.png)
 
 </div>
 

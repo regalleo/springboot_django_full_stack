@@ -16,6 +16,8 @@ from pathlib import Path
 import os
 import environ  # make sure this is imported
 
+BACKEND_API_URL = os.environ.get('BACKEND_API_URL', 'http://localhost:8080')
+
 # 1️⃣ Define BASE_DIR first
 BASE_DIR = Path(__file__).resolve().parent.parent
 

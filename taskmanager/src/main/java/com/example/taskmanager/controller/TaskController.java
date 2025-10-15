@@ -9,6 +9,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/tasks")
+@CrossOrigin(origins = "https://springboot-django-full-stack-2.onrender.com")
 public class TaskController {
 
     private final TaskService taskService;

@@ -82,7 +82,8 @@
 <div align="center">
 
 ### 🏠 Main Dashboard
-![Dashboard](https://via.placeholder.com/800x400/0a0a0f/BB86FC?text=Task+Manager+Dashboard)
+![Dashboard](https://github.com/regalleo/springboot_django_full_stack/blob/main/screenshots/dashboard.png)
+
 
 ### 🎯 Task Management
 ![Tasks](https://via.placeholder.com/800x400/0a0a0f/03DAC6?text=Interactive+Task+Cards)
